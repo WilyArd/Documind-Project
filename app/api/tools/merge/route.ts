@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processFile } from "@/lib/ilovepdf";
 
 export async function POST(req: NextRequest) {
     try {
@@ -20,30 +19,37 @@ export async function POST(req: NextRequest) {
 
         // Changing approach: Let's use the helper for single-file tasks, but write custom logic here for multi-file merge.
         const { default: ilovepdf } = await import("@/lib/ilovepdf");
-        const ILovePDFFile = (await import("@/lib/ilovepdf")).default.ILovePDFFile; // Wait, ILovePDFFile is not exported by default export instance
-
-        // Re-importing classes directly
-        const { default: ILovePDFApi } = await import("@ilovepdf/ilovepdf-nodejs");
-        const { default: ILovePDFFileClass } = await import("@/lib/ilovepdf").then(() => import("@ilovepdf/ilovepdf-nodejs/ILovePDFFile"));
-
-        // Actually, let's just import the instance from lib and use it
+        const { default: ILovePDFFile } = await import("@ilovepdf/ilovepdf-nodejs/ILovePDFFile");
+        const fs = await import("fs/promises");
+        const path = await import("path");
+        const os = await import("os");
 
         const task = ilovepdf.newTask("merge");
         await task.start();
 
+        const tempDir = os.tmpdir();
+        const tempFiles: string[] = [];
+
         for (const file of files) {
             const bytes = await file.arrayBuffer();
             const buffer = Buffer.from(bytes);
-            // @ts-ignore
-            const pdfFile = new ILovePDFFileClass(buffer);
+            const tempFilePath = path.join(tempDir, `documind_merge_${Date.now()}_${file.name}`);
+            await fs.writeFile(tempFilePath, buffer);
+            tempFiles.push(tempFilePath);
+            const pdfFile = new ILovePDFFile(tempFilePath);
             await task.addFile(pdfFile);
         }
 
         await task.process();
         const data = await task.download();
-        const buffer = Buffer.from(data);
 
-        return new NextResponse(buffer, {
+        // Clean up temp files
+        for (const tempFile of tempFiles) {
+            await fs.unlink(tempFile).catch(() => { });
+        }
+
+        const uint8 = new Uint8Array(data);
+        return new NextResponse(uint8, {
             headers: {
                 "Content-Type": "application/pdf",
                 "Content-Disposition": 'attachment; filename="merged.pdf"',

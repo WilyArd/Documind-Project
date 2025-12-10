@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
             compression_level: compressionLevel || "recommended",
         });
 
-        return new NextResponse(outputBuffer, {
+        const uint8 = new Uint8Array(outputBuffer);
+        return new NextResponse(uint8, {
             headers: {
                 "Content-Type": "application/pdf",
                 "Content-Disposition": `attachment; filename="compressed_${file.name}"`,

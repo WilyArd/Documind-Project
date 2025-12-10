@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
         const outputBuffer = await processFile("split", buffer, file.name, params);
 
         // iLovePDF split usually returns a ZIP if multiple files are resulting
-        return new NextResponse(outputBuffer, {
+        const uint8 = new Uint8Array(outputBuffer);
+        return new NextResponse(uint8, {
             headers: {
                 "Content-Type": "application/zip", // Provided it returns a zip
                 "Content-Disposition": 'attachment; filename="split-files.zip"',
