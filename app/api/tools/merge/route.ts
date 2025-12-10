@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { checkUsageLimit, logUsage } from "@/lib/usage-limit";
 
 export async function POST(req: NextRequest) {
     try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { allowed } = await checkUsageLimit(supabase, user.id, "merge");
+        if (!allowed) {
+            return NextResponse.json(
+                { error: "Daily limit reached (5/5). Upgrade for more." },
+                { status: 429 }
+            );
+        }
+
         const formData = await req.formData();
         const files = formData.getAll("files") as File[];
 
@@ -47,6 +64,9 @@ export async function POST(req: NextRequest) {
         for (const tempFile of tempFiles) {
             await fs.unlink(tempFile).catch(() => { });
         }
+
+        // Log usage on success
+        await logUsage(supabase, user.id, "merge");
 
         const uint8 = new Uint8Array(data);
         return new NextResponse(uint8, {

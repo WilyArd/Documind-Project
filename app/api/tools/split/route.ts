@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processFile } from "@/lib/ilovepdf";
+import { createClient } from "@/lib/supabase/server";
+import { checkUsageLimit, logUsage } from "@/lib/usage-limit";
 
 export async function POST(req: NextRequest) {
     try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { allowed } = await checkUsageLimit(supabase, user.id, "split");
+        if (!allowed) {
+            return NextResponse.json(
+                { error: "Daily limit reached (5/5). Upgrade for more." },
+                { status: 429 }
+            );
+        }
+
         const formData = await req.formData();
         const file = formData.get("file") as File;
         const splitMode = formData.get("splitMode") as string; // 'ranges' or 'all'
@@ -40,6 +57,9 @@ export async function POST(req: NextRequest) {
         }
 
         const outputBuffer = await processFile("split", buffer, file.name, params);
+
+        // Log usage on success
+        await logUsage(supabase, user.id, "split");
 
         // iLovePDF split usually returns a ZIP if multiple files are resulting
         const uint8 = new Uint8Array(outputBuffer);

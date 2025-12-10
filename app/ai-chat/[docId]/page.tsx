@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useRef, useEffect, use } from "react";
-import { Send, FileText, Sparkles, ArrowLeft, History } from "lucide-react";
+import { Send, FileText, Sparkles, ArrowLeft, History, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { FileUploader } from "@/components/ui/FileUploader";
 
 interface Message {
     id: string;
@@ -19,6 +20,7 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
     const [isLoading, setIsLoading] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
     const [activeTab, setActiveTab] = useState<"chat" | "pdf">("chat"); // Mobile tab state
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
@@ -39,7 +41,7 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
                         setMessages([{
                             id: "welcome",
                             role: "assistant",
-                            content: "Hi! I'm DocuMind AI. Ask me anything about this document. I can help you summarize, find specific information, or explain complex sections.",
+                            content: "Hi! I'm DocuMind AI. Upload a PDF to get started, then ask me anything about it!",
                         }]);
                     }
                 }
@@ -91,29 +93,60 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
         saveMessage("user", userContent);
 
         try {
+            const formData = new FormData();
+            formData.append("message", userContent);
+            formData.append("docId", docId);
+            if (selectedFile) {
+                formData.append("file", selectedFile);
+            }
+
             const response = await fetch("/api/ai-chat", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: userContent, docId }),
+                body: formData,
             });
 
             const data = await response.json();
 
-            if (data.success) {
+            if (response.ok) {
                 const aiMessage: Message = {
                     id: (Date.now() + 1).toString(),
                     role: "assistant",
-                    content: data.message,
+                    content: data.response || data.message, // handle potential api response diff
                 };
                 setMessages((prev) => [...prev, aiMessage]);
                 // Save AI response in background
-                saveMessage("assistant", data.message);
+                saveMessage("assistant", data.response || data.message);
+            } else {
+                // Handle error (e.g., limit reached)
+                const errorMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: "assistant",
+                    content: data.error || "Something went wrong.",
+                };
+                setMessages((prev) => [...prev, errorMessage]);
             }
         } catch (error) {
             console.error("Error sending message:", error);
+            const errorMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: "assistant",
+                content: "Failed to connect to the server.",
+            };
+            setMessages((prev) => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleFileSelect = (files: File[]) => {
+        if (files.length > 0) {
+            setSelectedFile(files[0]);
+            // Optional: Auto-switch to chat tab on mobile after upload?
+        }
+    };
+
+    const removeFile = () => {
+        setSelectedFile(null);
     };
 
     if (isInitializing) {
@@ -134,18 +167,18 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
                 <button
                     onClick={() => setActiveTab("pdf")}
                     className={`flex-1 p-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === "pdf"
-                            ? "border-primary text-primary bg-primary/5"
-                            : "border-transparent text-muted hover:text-foreground"
+                        ? "border-primary text-primary bg-primary/5"
+                        : "border-transparent text-muted hover:text-foreground"
                         }`}
                 >
                     <FileText className="w-4 h-4" />
-                    View PDF
+                    Document
                 </button>
                 <button
                     onClick={() => setActiveTab("chat")}
                     className={`flex-1 p-3 text-sm font-medium flex items-center justify-center gap-2 border-b-2 transition-colors ${activeTab === "chat"
-                            ? "border-primary text-primary bg-primary/5"
-                            : "border-transparent text-muted hover:text-foreground"
+                        ? "border-primary text-primary bg-primary/5"
+                        : "border-transparent text-muted hover:text-foreground"
                         }`}
                 >
                     <Sparkles className="w-4 h-4" />
@@ -153,7 +186,7 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
                 </button>
             </div>
 
-            {/* PDF Viewer Panel */}
+            {/* Left Panel: File Upload / Info */}
             <div className={`md:flex md:w-1/2 flex-col border-r border-border ${activeTab === "pdf" ? "flex flex-1" : "hidden"}`}>
                 <div className="p-4 border-b border-border flex items-center gap-3">
                     <Link
@@ -163,18 +196,48 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
                     <FileText className="w-5 h-5 text-primary" />
-                    <span className="font-medium text-foreground">Document: {docId}</span>
+                    <span className="font-medium text-foreground">Document Context</span>
                 </div>
-                <div className="flex-1 flex items-center justify-center bg-muted/10">
-                    <div className="text-center p-8">
-                        <div className="inline-flex p-4 rounded-full bg-primary/10 mb-4">
-                            <FileText className="w-12 h-12 text-primary" />
+                <div className="flex-1 p-6 bg-muted/10 overflow-y-auto">
+                    {!selectedFile ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center">
+                            <FileUploader
+                                onFilesSelected={handleFileSelect}
+                                maxFiles={1}
+                                maxSize={10 * 1024 * 1024} // 10MB
+                                className="max-w-md mx-auto"
+                            />
+                            <p className="text-sm text-muted mt-4">
+                                Upload a PDF to query it with AI.
+                            </p>
                         </div>
-                        <p className="text-muted">PDF Viewer</p>
-                        <p className="text-sm text-muted-foreground mt-2">
-                            Upload a PDF to view it here
-                        </p>
-                    </div>
+                    ) : (
+                        <div className="max-w-md mx-auto">
+                            <div className="p-6 bg-card border border-border rounded-xl shadow-sm text-center">
+                                <div className="inline-flex p-4 rounded-full bg-primary/10 mb-4">
+                                    <FileText className="w-12 h-12 text-primary" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-foreground mb-2 truncate" title={selectedFile.name}>
+                                    {selectedFile.name}
+                                </h3>
+                                <p className="text-sm text-muted mb-6">
+                                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                                <Button
+                                    variant="outline"
+                                    onClick={removeFile}
+                                    className="w-full"
+                                >
+                                    Remove / Change File
+                                </Button>
+                            </div>
+                            <div className="mt-6 text-center">
+                                <p className="text-sm text-muted">
+                                    File is ready. Switch to the chat tab to ask questions!
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -193,7 +256,9 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
                     </div>
                     <div>
                         <h2 className="font-semibold text-foreground">DocuMind AI</h2>
-                        <p className="text-xs text-muted">Powered by Gemini</p>
+                        <p className="text-xs text-muted">
+                            Powered by Gemini • {selectedFile ? "File Loaded" : "No File Loaded"}
+                        </p>
                     </div>
                 </div>
 
@@ -237,7 +302,7 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask DocuMind about this document..."
+                            placeholder={selectedFile ? "Ask about your PDF..." : "Talk to the AI (Upload a PDF for context)..."}
                             className="flex-1 px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-ring transition-all"
                             disabled={isLoading}
                         />
