@@ -45,7 +45,7 @@ export default function SignupPage() {
         setIsLoading(true);
         setError("");
 
-        const { error } = await verifyOtp(email, otp);
+        const { error } = await verifyOtp(email, otp, "signup");
 
         if (error) {
             setError(error.message);

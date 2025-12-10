@@ -11,7 +11,7 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<void>;
     signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
     signUpWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
-    verifyOtp: (email: string, token: string, type: "signup" | "recovery" | "magiclink" | "email_change_token") => Promise<{ error: Error | null }>;
+    verifyOtp: (email: string, token: string, type?: "signup" | "recovery" | "magiclink" | "email_change_token") => Promise<{ error: Error | null }>;
     signOut: () => Promise<void>;
 }
 
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error } = await supabase.auth.verifyOtp({
             email,
             token,
-            type,
+            type: type as any,
         });
         return { error: error as Error | null };
     };
