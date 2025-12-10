@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 // @ts-ignore
-import pdf from "pdf-parse";
+const pdf = require("pdf-parse");
 import { createClient } from "@/lib/supabase/server";
 import { checkUsageLimit, logUsage } from "@/lib/usage-limit";
 
@@ -45,31 +45,55 @@ export async function POST(req: NextRequest) {
             try {
                 const data = await pdf(buffer);
                 contextText = data.text;
-
-                // Limit context size roughly to avoid token limits (Flash has large context but let's be safe)
-                // 1 char ~= 1 token (rough estimate for safety), Flash limit is 1M tokens.
-                // We are fine for most PDFs.
             } catch (e) {
                 console.error("PDF Parse error", e);
                 return NextResponse.json({ error: "Failed to read PDF content" }, { status: 400 });
             }
         }
 
-        // Initialize model
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // List of models to try in order of preference
+        // User has access to Gemini 2.5 series
+        const modelsToTry = [
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-pro",
+            "gemini-pro"
+        ];
 
-        // Construct prompt
+        let responseText = "";
+        let lastError = null;
+
+        // Construct prompt (reuse for all attempts)
         let prompt = `User Question: ${message}\n\n`;
         if (contextText) {
             prompt += `Using the following document content, answer the user's question. If the answer is not in the document, say so.\n\nDocument Content:\n${contextText}\n`;
         } else {
-            // If no file, maybe chat history context? For now simple chat.
             prompt += `Answer the following question as a helpful assistant.`;
         }
 
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
+        for (const modelName of modelsToTry) {
+            try {
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent(prompt);
+                const response = result.response;
+                responseText = response.text();
+
+                if (responseText) {
+                    break;
+                }
+            } catch (error: any) {
+                // Silently continue to next model, warn only in dev if needed
+                // console.warn(`Failed with ${modelName}:`, error.message);
+                lastError = error;
+            }
+        }
+
+        if (!responseText) {
+            throw lastError || new Error("All models failed. Please check your API Quota.");
+        }
 
         // Save to chat history
         // 1. User message
@@ -85,13 +109,13 @@ export async function POST(req: NextRequest) {
             user_id: user.id,
             doc_id: docId || "general",
             role: "assistant",
-            content: text
+            content: responseText
         });
 
         // Log usage
         await logUsage(supabase, user.id, "ai-chat");
 
-        return NextResponse.json({ response: text });
+        return NextResponse.json({ response: responseText });
 
     } catch (error: unknown) {
         console.error("AI Chat error:", error);

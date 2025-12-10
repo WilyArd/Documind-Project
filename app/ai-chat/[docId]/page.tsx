@@ -27,17 +27,20 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // Fetch chat history on mount
+    const [usageCount, setUsageCount] = useState<number | null>(null);
+    const LIMIT = 5;
+
+    // Fetch chat history and usage stats on mount
     useEffect(() => {
-        const fetchHistory = async () => {
+        const fetchData = async () => {
             try {
-                const response = await fetch(`/api/chat/history?docId=${docId}`);
-                if (response.ok) {
-                    const data = await response.json();
+                // Fetch History
+                const historyRes = await fetch(`/api/chat/history?docId=${docId}`);
+                if (historyRes.ok) {
+                    const data = await historyRes.json();
                     if (data.messages && data.messages.length > 0) {
                         setMessages(data.messages);
                     } else {
-                        // Default welcome message if no history
                         setMessages([{
                             id: "welcome",
                             role: "assistant",
@@ -45,15 +48,36 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
                         }]);
                     }
                 }
+
+                // Fetch Usage
+                const usageRes = await fetch("/api/user/usage");
+                if (usageRes.ok) {
+                    const usageData = await usageRes.json();
+                    setUsageCount(usageData.usage);
+                }
+
             } catch (error) {
-                console.error("Failed to load chat history", error);
+                console.error("Failed to load initial data", error);
             } finally {
                 setIsInitializing(false);
             }
         };
 
-        fetchHistory();
+        fetchData();
     }, [docId]);
+
+    // Update usage after successful message
+    const updateUsage = async () => {
+        try {
+            const usageRes = await fetch("/api/user/usage");
+            if (usageRes.ok) {
+                const usageData = await usageRes.json();
+                setUsageCount(usageData.usage);
+            }
+        } catch (e) {
+            console.error("Failed to update usage", e);
+        }
+    }
 
     useEffect(() => {
         scrollToBottom();
@@ -105,32 +129,45 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
                 body: formData,
             });
 
-            const data = await response.json();
-
-            if (response.ok) {
-                const aiMessage: Message = {
-                    id: (Date.now() + 1).toString(),
-                    role: "assistant",
-                    content: data.response || data.message, // handle potential api response diff
-                };
-                setMessages((prev) => [...prev, aiMessage]);
-                // Save AI response in background
-                saveMessage("assistant", data.response || data.message);
+            // Check content type before parsing
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const data = await response.json();
+                if (response.ok) {
+                    const aiMessage: Message = {
+                        id: (Date.now() + 1).toString(),
+                        role: "assistant",
+                        content: data.response || data.message,
+                    };
+                    setMessages((prev) => [...prev, aiMessage]);
+                    saveMessage("assistant", data.response || data.message);
+                    updateUsage(); // Refresh usage count
+                } else {
+                    const errorMessage: Message = {
+                        id: (Date.now() + 1).toString(),
+                        role: "assistant",
+                        content: data.error || "Something went wrong.",
+                    };
+                    setMessages((prev) => [...prev, errorMessage]);
+                }
             } else {
-                // Handle error (e.g., limit reached)
+                // Handle non-JSON response (likely HTML error page)
+                const text = await response.text();
+                console.error("Received non-JSON response:", text);
                 const errorMessage: Message = {
                     id: (Date.now() + 1).toString(),
                     role: "assistant",
-                    content: data.error || "Something went wrong.",
+                    content: `Server Error: Received unexpected response format. Check console/terminal logs.`,
                 };
                 setMessages((prev) => [...prev, errorMessage]);
             }
+
         } catch (error) {
             console.error("Error sending message:", error);
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "assistant",
-                content: "Failed to connect to the server.",
+                content: "Failed to connect to the server (Network error).",
             };
             setMessages((prev) => [...prev, errorMessage]);
         } finally {
@@ -255,7 +292,17 @@ export default function AiChatPage({ params }: { params: Promise<{ docId: string
                         <Sparkles className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h2 className="font-semibold text-foreground">DocuMind AI</h2>
+                        <div className="flex items-center gap-2">
+                            <h2 className="font-semibold text-foreground">DocuMind AI</h2>
+                            {usageCount !== null && (
+                                <span className={`text-xs px-2 py-0.5 rounded-full border ${usageCount >= LIMIT
+                                        ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                        : "bg-primary/10 text-primary border-primary/20"
+                                    }`}>
+                                    {usageCount}/{LIMIT} Credits
+                                </span>
+                            )}
+                        </div>
                         <p className="text-xs text-muted">
                             Powered by Gemini • {selectedFile ? "File Loaded" : "No File Loaded"}
                         </p>
