@@ -10,10 +10,11 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function SignupPage() {
     const router = useRouter();
-    const { signUpWithEmail, signInWithGoogle } = useAuth();
+    const { signUpWithEmail, signInWithGoogle, verifyOtp } = useAuth();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [otp, setOtp] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
@@ -39,6 +40,22 @@ export default function SignupPage() {
         await signInWithGoogle();
     };
 
+    const handleOtpVerification = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError("");
+
+        const { error } = await verifyOtp(email, otp);
+
+        if (error) {
+            setError(error.message);
+            setIsLoading(false);
+        } else {
+            // OTP verified, usually Supabase logs them in automatically
+            router.push("/dashboard");
+        }
+    };
+
     if (success) {
         return (
             <Card variant="glass" className="w-full text-center">
@@ -48,17 +65,40 @@ export default function SignupPage() {
                             <Mail className="w-8 h-8 text-white" />
                         </div>
                     </div>
-                    <CardTitle className="text-2xl">Check your email</CardTitle>
+                    <CardTitle className="text-2xl">Verify your email</CardTitle>
                     <CardDescription>
-                        We&apos;ve sent you a confirmation link. Please check your inbox to complete your registration.
+                        We've sent a 6-digit code to <strong>{email}</strong>. Enter it below to confirm your account.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Link href="/login">
-                        <Button variant="outline" className="w-full">
-                            Back to Sign In
+                    <form onSubmit={handleOtpVerification} className="space-y-4">
+                        {error && (
+                            <div className="p-3 text-sm text-error bg-error/10 border border-error/20 rounded-lg">
+                                {error}
+                            </div>
+                        )}
+                        <div className="space-y-2">
+                            <input
+                                type="text"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                                placeholder="Enter 6-digit code"
+                                className="w-full pl-4 pr-4 py-2.5 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all text-center tracking-widest text-lg font-mono placeholder:font-sans placeholder:tracking-normal placeholder:text-sm"
+                                maxLength={6}
+                                required
+                            />
+                        </div>
+                        <Button type="submit" className="w-full" isLoading={isLoading}>
+                            Verify Code
                         </Button>
-                    </Link>
+                        <button
+                            type="button"
+                            onClick={() => setSuccess(false)}
+                            className="text-sm text-primary hover:underline mt-4"
+                        >
+                            Change Email
+                        </button>
+                    </form>
                 </CardContent>
             </Card>
         );

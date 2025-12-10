@@ -11,6 +11,7 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<void>;
     signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
     signUpWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
+    verifyOtp: (email: string, token: string, type: "signup" | "recovery" | "magiclink" | "email_change_token") => Promise<{ error: Error | null }>;
     signOut: () => Promise<void>;
 }
 
@@ -77,8 +78,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email,
             password,
             options: {
-                emailRedirectTo: `${window.location.origin}/auth/callback`,
+                emailRedirectTo: undefined, // Disable link redirect for OTP
             },
+        });
+        return { error: error as Error | null };
+    };
+
+    const verifyOtp = async (email: string, token: string, type: "signup" | "recovery" | "magiclink" | "email_change_token" = "signup") => {
+        const { error } = await supabase.auth.verifyOtp({
+            email,
+            token,
+            type,
         });
         return { error: error as Error | null };
     };
@@ -96,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 signInWithGoogle,
                 signInWithEmail,
                 signUpWithEmail,
+                verifyOtp,
                 signOut,
             }}
         >
