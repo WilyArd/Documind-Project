@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DocuMind - Intelligent Document Management
 
-## Getting Started
+DocuMind is a modern, AI-powered document management and utility platform built with Next.js. It offers a suite of PDF tools (Merge, Split, Compress) backed by the specialized iLovePDF API, along with an intelligent AI Chat feature that allows users to converse with their documents.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### PDF Utilities (Powered by iLovePDF)
+*   **Merge**: Combine multiple PDF files into a single document.
+*   **Split**: Extract all pages or specific ranges from a PDF.
+*   **Compress**: Reduce PDF file size while maintaining optimal quality.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### AI Capabilities
+*   **Chat with Documents**: Upload a document and ask questions, summarize content, or extract key information using an interactive AI interface.
+*   **Chat History**: Automatically saves your conversations for future reference.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### User Experience
+*   **Modern Dashboard**: Clean, responsive interface with glassmorphism design elements.
+*   **Secure Authentication**: Google OAuth and Email/Password login powered by Supabase.
+*   **Responsive Design**: Optimized for Desktop, Tablet, and Mobile devices.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠️ Tech Stack
 
-## Learn More
+*   **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
+*   **Styling**: Tailwind CSS, Lucide React (Icons)
+*   **Backend/Database**: [Supabase](https://supabase.com/) (Auth, PostgreSQL, Row Level Security)
+*   **PDF Processing**: [iLovePDF API](https://developer.ilovepdf.com/)
+*   **Language**: TypeScript
 
-To learn more about Next.js, take a look at the following resources:
+## 📦 Getting Started
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Prerequisites
+*   Node.js 18+ installed
+*   A Supabase project (for Auth & Database)
+*   An iLovePDF Developer account (for API keys)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Installation
 
-## Deploy on Vercel
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/WilyArd/Documind-Project.git
+    cd Documind-Project
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3.  **Environment Setup:**
+    Create a `.env.local` file in the root directory and add the following keys:
+    ```env
+    # Supabase Configuration
+    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+    
+    # iLovePDF API Keys (Get these from developer.ilovepdf.com)
+    ILOVEPDF_PUBLIC_KEY=your_public_key
+    ILOVEPDF_SECRET_KEY=your_secret_key
+    ```
+    *(Refer to `env.local.example` for a template)*
+
+4.  **Database Setup:**
+    Run the SQL script located at `supabase/schema.sql` in your Supabase SQL Editor to create the necessary tables (e.g., `chat_history`).
+
+5.  **Run the application:**
+    ```bash
+    npm run dev
+    ```
+
+6.  **Open in Browser:**
+    Navigate to [http://localhost:3000](http://localhost:3000).
+
+## 🔒 Security
+
+*   **Authentication**: Protected routes (Dashboard, AI Chat, Tools) require login via `AuthGuard`.
+*   **Data Privacy**: Row Level Security (RLS) ensures users can only access their own chat history and data.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the MIT License.
