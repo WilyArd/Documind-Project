@@ -10,15 +10,14 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function SignupPage() {
     const router = useRouter();
-    const { signUpWithEmail, signInWithGoogle, verifyOtp } = useAuth();
+    const { signUpWithEmail, signInWithGoogle } = useAuth();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [otp, setOtp] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState(false);
+    // const [success, setSuccess] = useState(false); // Unused now
 
     const handleEmailSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,8 +30,14 @@ export default function SignupPage() {
             setError(error.message);
             setIsLoading(false);
         } else {
-            setSuccess(true);
-            setIsLoading(false);
+            // Check if we have an active session (verification disabled)
+            // We can't easily check session here directly without fetching, 
+            // but usually valid session redirects to dashboard via AuthGuard or simple router push
+            // If email confirmation is disabled, signUp signs in immediately.
+
+            // To be safe, we just push to dashboard. 
+            // If they are not logged in (confirmation enabled), AuthGuard will kick them out to login, which is fine.
+            router.push("/dashboard");
         }
     };
 
@@ -40,69 +45,8 @@ export default function SignupPage() {
         await signInWithGoogle();
     };
 
-    const handleOtpVerification = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError("");
+    // Removed OTP Verification UI logic
 
-        const { error } = await verifyOtp(email, otp, "signup");
-
-        if (error) {
-            setError(error.message);
-            setIsLoading(false);
-        } else {
-            // OTP verified, usually Supabase logs them in automatically
-            router.push("/dashboard");
-        }
-    };
-
-    if (success) {
-        return (
-            <Card variant="glass" className="w-full text-center">
-                <CardHeader>
-                    <div className="flex justify-center mb-4">
-                        <div className="p-3 rounded-xl bg-gradient-to-br from-success to-primary shadow-lg">
-                            <Mail className="w-8 h-8 text-white" />
-                        </div>
-                    </div>
-                    <CardTitle className="text-2xl">Verify your email</CardTitle>
-                    <CardDescription>
-                        We've sent a 6-digit code to <strong>{email}</strong>. Enter it below to confirm your account.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleOtpVerification} className="space-y-4">
-                        {error && (
-                            <div className="p-3 text-sm text-error bg-error/10 border border-error/20 rounded-lg">
-                                {error}
-                            </div>
-                        )}
-                        <div className="space-y-2">
-                            <input
-                                type="text"
-                                value={otp}
-                                onChange={(e) => setOtp(e.target.value)}
-                                placeholder="Enter 6-digit code"
-                                className="w-full pl-4 pr-4 py-2.5 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all text-center tracking-widest text-lg font-mono placeholder:font-sans placeholder:tracking-normal placeholder:text-sm"
-                                maxLength={6}
-                                required
-                            />
-                        </div>
-                        <Button type="submit" className="w-full" isLoading={isLoading}>
-                            Verify Code
-                        </Button>
-                        <button
-                            type="button"
-                            onClick={() => setSuccess(false)}
-                            className="text-sm text-primary hover:underline mt-4"
-                        >
-                            Change Email
-                        </button>
-                    </form>
-                </CardContent>
-            </Card>
-        );
-    }
 
     return (
         <Card variant="glass" className="w-full">
