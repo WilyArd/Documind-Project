@@ -25,7 +25,7 @@ export function Navbar() {
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-8">
                         {/* Logo */}
-                        <Link href="/dashboard" className="flex items-center gap-2 group">
+                        <Link href="/" className="flex items-center gap-2 group">
                             <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-secondary group-hover:shadow-lg group-hover:shadow-primary/25 transition-all">
                                 <Brain className="w-6 h-6 text-white" />
                             </div>
