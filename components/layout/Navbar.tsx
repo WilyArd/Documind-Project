@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, FolderOpen, Wrench, User, Menu, X, LogOut } from "lucide-react";
+import { Brain, LayoutDashboard, User, Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 
 const navLinks = [
-    { href: "/dashboard", label: "My Docs", icon: FolderOpen },
-    { href: "/tools/merge", label: "Tools", icon: Wrench },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
 ];
 
 export function Navbar() {
