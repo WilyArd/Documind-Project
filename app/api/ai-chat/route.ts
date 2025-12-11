@@ -14,15 +14,17 @@ export async function POST(req: NextRequest) {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        // Get IP for guest tracking
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+        const userId = user ? user.id : null;
 
         // Check limits
-        const { allowed } = await checkUsageLimit(supabase, user.id, "ai-chat");
+        const { allowed } = await checkUsageLimit(supabase, userId, "ai-chat", ip);
+
         if (!allowed) {
+            const limitMsg = userId ? "Daily AI limit reached (3/3)." : "Guest limit reached (1/1). Sign in for more.";
             return NextResponse.json(
-                { error: "Daily limit reached (5/5). Upgrade for more." },
+                { error: limitMsg },
                 { status: 429 }
             );
         }
@@ -95,25 +97,27 @@ export async function POST(req: NextRequest) {
             throw lastError || new Error("All models failed. Please check your API Quota.");
         }
 
-        // Save to chat history
-        // 1. User message
-        await supabase.from("chat_history").insert({
-            user_id: user.id,
-            doc_id: docId || "general",
-            role: "user",
-            content: message
-        });
+        // Save to chat history ONLY if user is logged in
+        if (user) {
+            // 1. User message
+            await supabase.from("chat_history").insert({
+                user_id: user.id,
+                doc_id: docId || "general",
+                role: "user",
+                content: message
+            });
 
-        // 2. Assistant message
-        await supabase.from("chat_history").insert({
-            user_id: user.id,
-            doc_id: docId || "general",
-            role: "assistant",
-            content: responseText
-        });
+            // 2. Assistant message
+            await supabase.from("chat_history").insert({
+                user_id: user.id,
+                doc_id: docId || "general",
+                role: "assistant",
+                content: responseText
+            });
+        }
 
-        // Log usage
-        await logUsage(supabase, user.id, "ai-chat");
+        // Log usage (Guest or User)
+        await logUsage(supabase, userId, "ai-chat", null, ip);
 
         return NextResponse.json({ response: responseText });
 

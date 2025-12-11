@@ -36,14 +36,20 @@ export default async function DashboardPage() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    let usageCount = 0;
-    const LIMIT = 5;
+    let pdfUsage = 0;
+    let aiUsage = 0;
+    const PDF_LIMIT = 5;
+    const AI_LIMIT = 3;
     let recentLogs: any[] = [];
 
     if (user) {
-        // Fetch usage count
-        const { count } = await checkUsageLimit(supabase, user.id);
-        usageCount = count;
+        // Fetch PDF usage (exclude ai-chat)
+        const { count: countPdf } = await checkUsageLimit(supabase, user.id, "general");
+        pdfUsage = countPdf || 0;
+
+        // Fetch AI usage
+        const { count: countAi } = await checkUsageLimit(supabase, user.id, "ai-chat");
+        aiUsage = countAi || 0;
 
         // Fetch recent logs
         const { data: logs } = await supabase
@@ -85,21 +91,43 @@ export default async function DashboardPage() {
                     </p>
                 </div>
 
-                {/* Usage Card */}
-                <div className="bg-card/50 backdrop-blur-sm border border-border/50 p-4 rounded-xl flex items-center gap-4 min-w-[280px]">
-                    <div className={`p-3 rounded-lg ${usageCount >= LIMIT ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
-                        <Sparkles className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium text-foreground">Daily Credits</span>
-                            <span className={`text-xs font-bold ${usageCount >= LIMIT ? 'text-red-500' : 'text-primary'}`}>{usageCount}/{LIMIT} Used</span>
+                {/* Usage Cards */}
+                <div className="flex flex-col sm:flex-row gap-4">
+                    {/* PDF Limit Card */}
+                    <div className="bg-card/50 backdrop-blur-sm border border-border/50 p-4 rounded-xl flex items-center gap-4 min-w-[240px]">
+                        <div className={`p-3 rounded-lg ${pdfUsage >= PDF_LIMIT ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                            <Minimize2 className="w-6 h-6" />
                         </div>
-                        <div className="w-full h-2 bg-secondary/20 rounded-full overflow-hidden">
-                            <div
-                                className={`h-full rounded-full transition-all duration-500 ${usageCount >= LIMIT ? 'bg-red-500' : 'bg-primary'}`}
-                                style={{ width: `${Math.min((usageCount / LIMIT) * 100, 100)}%` }}
-                            ></div>
+                        <div className="flex-1">
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm font-medium text-foreground">PDF Tools</span>
+                                <span className={`text-xs font-bold ${pdfUsage >= PDF_LIMIT ? 'text-red-500' : 'text-blue-500'}`}>{pdfUsage}/{PDF_LIMIT}</span>
+                            </div>
+                            <div className="w-full h-2 bg-secondary/20 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-500 ${pdfUsage >= PDF_LIMIT ? 'bg-red-500' : 'bg-blue-500'}`}
+                                    style={{ width: `${Math.min((pdfUsage / PDF_LIMIT) * 100, 100)}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* AI Limit Card */}
+                    <div className="bg-card/50 backdrop-blur-sm border border-border/50 p-4 rounded-xl flex items-center gap-4 min-w-[240px]">
+                        <div className={`p-3 rounded-lg ${aiUsage >= AI_LIMIT ? 'bg-red-500/10 text-red-500' : 'bg-purple-500/10 text-purple-500'}`}>
+                            <Sparkles className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm font-medium text-foreground">AI Credits</span>
+                                <span className={`text-xs font-bold ${aiUsage >= AI_LIMIT ? 'text-red-500' : 'text-purple-500'}`}>{aiUsage}/{AI_LIMIT}</span>
+                            </div>
+                            <div className="w-full h-2 bg-secondary/20 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-500 ${aiUsage >= AI_LIMIT ? 'bg-red-500' : 'bg-purple-500'}`}
+                                    style={{ width: `${Math.min((aiUsage / AI_LIMIT) * 100, 100)}%` }}
+                                ></div>
+                            </div>
                         </div>
                     </div>
                 </div>

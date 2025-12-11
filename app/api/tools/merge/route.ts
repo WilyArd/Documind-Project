@@ -7,14 +7,17 @@ export async function POST(req: NextRequest) {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        // Get IP for guest tracking
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+        const userId = user ? user.id : null;
 
-        const { allowed } = await checkUsageLimit(supabase, user.id, "merge");
+        // Check limits
+        const { allowed } = await checkUsageLimit(supabase, userId, "merge", ip);
+
         if (!allowed) {
+            const limitMsg = userId ? "Daily PDF tools limit reached (5/5)." : "Guest limit reached (1/1). Sign in for more.";
             return NextResponse.json(
-                { error: "Daily limit reached (5/5). Upgrade for more." },
+                { error: limitMsg },
                 { status: 429 }
             );
         }
@@ -66,7 +69,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Log usage on success
-        await logUsage(supabase, user.id, "merge");
+        await logUsage(supabase, userId, "merge", null, ip);
 
         const uint8 = new Uint8Array(data);
         return new NextResponse(uint8, {

@@ -8,16 +8,26 @@ export async function GET(req: NextRequest) {
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
+        const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
+        const userId = user ? user.id : null;
 
-        const { count } = await checkUsageLimit(supabase, user.id);
+        // Check General Limit (PDF Tools)
+        const { count: generalUsage } = await checkUsageLimit(supabase, userId, "general", ip); // "general" or anything not "ai-chat"
+
+        // Check AI Limit
+        const { count: aiUsage } = await checkUsageLimit(supabase, userId, "ai-chat", ip);
+
+        const isGuest = !userId;
+        const generalLimit = isGuest ? 1 : 5;
+        const aiLimit = isGuest ? 1 : 3;
 
         return NextResponse.json({
-            usage: count,
-            limit: 5,
-            remaining: Math.max(0, 5 - count)
+            usage: generalUsage,
+            limit: generalLimit,
+            ai_usage: aiUsage,
+            ai_limit: aiLimit,
+            remaining: Math.max(0, generalLimit - generalUsage),
+            is_guest: isGuest
         });
 
     } catch (error) {
