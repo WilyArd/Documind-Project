@@ -24,31 +24,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = createClient();
 
     useEffect(() => {
-        const getSession = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setSession(session);
-            setUser(session?.user ?? null);
-            setLoading(false);
-        };
-
-        getSession();
-
+        // Only run this once
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 console.log("Auth state changed:", event, session?.user?.email);
 
-                if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                if (session) {
                     setSession(session);
-                    setUser(session?.user ?? null);
-                } else if (event === 'SIGNED_OUT') {
+                    setUser(session.user);
+                } else {
                     setSession(null);
                     setUser(null);
-                } else {
-                    // Fallback for other events
-                    setSession(session);
-                    setUser(session?.user ?? null);
                 }
-
+                
                 setLoading(false);
             }
         );
