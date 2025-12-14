@@ -90,6 +90,4 @@ DocuMind is a modern, AI-powered document management and utility platform built 
 *   **Guest Privacy**: Guest usage is tracked via IP without persistent personal data storage.
 *   **Vulnerability Free**: Regularly audited dependencies (0 vulnerabilities).
 
-## 📄 License
 
-This project is licensed under the MIT License.
