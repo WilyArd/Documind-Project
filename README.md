@@ -1,37 +1,51 @@
 # DocuMind - Intelligent Document Management
 
-DocuMind is a modern, AI-powered document management and utility platform built with Next.js. It offers a suite of PDF tools (Merge, Split, Compress) backed by the specialized iLovePDF API, along with an intelligent AI Chat feature that allows users to converse with their documents.
+![DocuMind Banner](/app/icon.png)
+
+**Created by: Rahmanda Ahmad Wilyan Januardo (23083000113)**
+
+DocuMind is a modern, AI-powered document management and utility platform built with the latest web technologies. It combines powerful PDF tools (Merge, Split, Compress) with an intelligent AI Chat feature, allowing users to converse with their documents for summaries and insights.
 
 ## 🚀 Features
 
-### PDF Utilities (Powered by iLovePDF)
+### 🧠 Intelligent AI Chat
+*   **Chat with Documents**: Upload a PDF and interact with it using advanced AI (Google Gemini 2.5/Flash).
+*   **Context Aware**: ask questions specific to the document's content.
+*   **Guest Access**: Try the AI chat instantly without creating an account (limited usage).
+
+### 📄 PDF Utilities (Powered by iLovePDF)
 *   **Merge**: Combine multiple PDF files into a single document.
 *   **Split**: Extract all pages or specific ranges from a PDF.
 *   **Compress**: Reduce PDF file size while maintaining optimal quality.
 
-### AI Capabilities
-*   **Chat with Documents**: Upload a document and ask questions, summarize content, or extract key information using an interactive AI interface.
-*   **Chat History**: Automatically saves your conversations for future reference.
+### 🛡️ Smart Usage & Security
+*   **Tiered Access System**:
+    *   **Guest Mode**: 1 Free Credit/Day (IP-based tracking).
+    *   **Registered Users**: 5 PDF Credits + 3 AI Credits per Day.
+*   **Live Dashboard**: Real-time visualization of your daily usage limits.
+*   **Secure Auth**: Google OAuth and Email Magic Links via Supabase.
 
-### User Experience
-*   **Modern Dashboard**: Clean, responsive interface with glassmorphism design elements.
-*   **Secure Authentication**: Google OAuth and Email/Password login powered by Supabase.
-*   **Responsive Design**: Optimized for Desktop, Tablet, and Mobile devices.
+### 💻 User Experience
+*   **Modern UI**: Sleek, glassmorphism-inspired design with responsive layouts.
+*   **Landing Page**: A dedicated homepage showcasing features and trust indicators.
+*   **Fast & Reliable**: Built on Next.js 16 for optimal performance.
 
 ## 🛠️ Tech Stack
 
-*   **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
-*   **Styling**: Tailwind CSS, Lucide React (Icons)
-*   **Backend/Database**: [Supabase](https://supabase.com/) (Auth, PostgreSQL, Row Level Security)
-*   **PDF Processing**: [iLovePDF API](https://developer.ilovepdf.com/)
+*   **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
+*   **Styling**: Tailwind CSS 3.4, Lucide React
+*   **Backend/Auth**: [Supabase](https://supabase.com/) (PostgreSQL, RLS)
+*   **AI Engine**: [Google Gemini API](https://ai.google.dev/)
+*   **PDF Engine**: [iLovePDF API](https://developer.ilovepdf.com/)
 *   **Language**: TypeScript
 
 ## 📦 Getting Started
 
 ### Prerequisites
-*   Node.js 18+ installed
+*   Node.js 20+ installed
 *   A Supabase project (for Auth & Database)
-*   An iLovePDF Developer account (for API keys)
+*   An iLovePDF Developer account
+*   A Google Gemini API Key
 
 ### Installation
 
@@ -47,37 +61,34 @@ DocuMind is a modern, AI-powered document management and utility platform built 
     ```
 
 3.  **Environment Setup:**
-    Create a `.env.local` file in the root directory and add the following keys:
+    Create a `.env.local` file in the root directory:
     ```env
     # Supabase Configuration
     NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
     NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
     
-    # iLovePDF API Keys (Get these from developer.ilovepdf.com)
+    # iLovePDF API Keys
     ILOVEPDF_PUBLIC_KEY=your_public_key
     ILOVEPDF_SECRET_KEY=your_secret_key
+
+    # Google Gemini AI
+    GEMINI_API_KEY=your_gemini_key
     ```
-    *(Refer to `env.local.example` for a template)*
 
-4.  **Database Setup:**
-    Run the SQL script located at `supabase/schema.sql` in your Supabase SQL Editor to create the necessary tables (e.g., `chat_history`).
-
-5.  **Run the application:**
+4.  **Run the application:**
     ```bash
     npm run dev
     ```
 
-6.  **Open in Browser:**
+5.  **Open in Browser:**
     Navigate to [http://localhost:3000](http://localhost:3000).
 
-## 🔒 Security
+## 🔒 Security & Privacy
 
-*   **Authentication**: Protected routes (Dashboard, AI Chat, Tools) require login via `AuthGuard`.
-*   **Data Privacy**: Row Level Security (RLS) ensures users can only access their own chat history and data.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+*   **Authentication**: Protected routes verify session server-side.
+*   **RLS Policies**: Row Level Security ensures users can only access their own data.
+*   **Guest Privacy**: Guest usage is tracked via IP without persistent personal data storage.
+*   **Vulnerability Free**: Regularly audited dependencies (0 vulnerabilities).
 
 ## 📄 License
 
